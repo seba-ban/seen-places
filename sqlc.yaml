@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "db/queries"
+    schema: "db/migrations"
+    gen:
+      go:
+        package: "queries"
+        out: "queries"
+        sql_package: "pgx/v5"
+        # overrides:
+        # panic: ERROR: COPY from stdin failed: unable to encode geom.Point{geom0:geom.geom0{layout:1, stride:2, flatCoords:[]float64{1, 2}, srid:4326}} into binary format for unknown type (OID 36280): cannot find encode plan (SQLSTATE 57014)
+        # - db_type: "geometry"
+        #   go_type: "github.com/twpayne/go-geom.Point"
+        # - db_type: "geometry"
+        #   go_type: "github.com/twpayne/go-geom/encoding/wkb.Point"

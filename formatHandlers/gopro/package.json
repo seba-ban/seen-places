@@ -1,0 +1,40 @@
+{
+  "name": "gopro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write src/",
+    "build": "tsc",
+    "lint": "eslint --ext .ts ./src",
+    "lint:fix": "npm run lint -- --fix",
+    "dev": "nodemon src/index.ts",
+    "start": "node ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.0.3",
+    "ts-node": "^10.9.1",
+    "ts-proto": "^1.164.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.9",
+    "amqplib": "^0.10.3",
+    "env-var": "^7.4.1",
+    "gopro-telemetry": "^1.2.4",
+    "gpmf-extract": "^0.3.1"
+  }
+}

@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "github.com/seba-ban/seen-places/events";
+
+message ProcessFileRequest {
+    string filepath = 1;
+}
+
+message ExtractedFilePoint {
+    string filepath = 1;
+    string timestamp = 2;
+    float latitude = 3;
+    float longitude = 4;
+    // json metadata
+    string metadata = 5;
+}
+
+message ExtractedFilePoints {
+    repeated ExtractedFilePoint points = 1;
+}
