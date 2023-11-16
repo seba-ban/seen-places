@@ -22,4 +22,7 @@ RUN npm install --omit=dev
 
 COPY --from=builder /builder/dist ./dist
 
+VOLUME [ "/data" ]
+ENV LOCAL_STORAGE_FILES_DIR /data/storage
+
 CMD ["npm", "run", "start"]

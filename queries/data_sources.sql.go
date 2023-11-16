@@ -7,25 +7,29 @@ package queries
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createDataSource = `-- name: CreateDataSource :one
-INSERT INTO data_sources (
-  filepath, type, original_filename, size
-) VALUES (
-  $1, $2, $3, $4
-)
-RETURNING filepath, type, original_filename, size, created_at
+INSERT INTO
+    data_sources (
+        filepath,
+        type,
+        original_filename,
+        size
+    )
+VALUES ($1, $2, $3, $4) RETURNING filepath, type, original_filename, size, created_at
 `
 
 type CreateDataSourceParams struct {
-	Filepath         string
-	Type             string
-	OriginalFilename string
-	Size             int64
+	Filepath         string `json:"filepath"`
+	Type             string `json:"type"`
+	OriginalFilename string `json:"originalFilename"`
+	Size             int64  `json:"size"`
 }
 
-func (q *Queries) CreateDataSource(ctx context.Context, arg CreateDataSourceParams) (DataSource, error) {
+func (q *Queries) CreateDataSource(ctx context.Context, arg *CreateDataSourceParams) (DataSource, error) {
 	row := q.db.QueryRow(ctx, createDataSource,
 		arg.Filepath,
 		arg.Type,
@@ -44,8 +48,7 @@ func (q *Queries) CreateDataSource(ctx context.Context, arg CreateDataSourcePara
 }
 
 const getDataSourceByFilePath = `-- name: GetDataSourceByFilePath :one
-SELECT filepath, type, original_filename, size, created_at FROM data_sources
-WHERE filepath = $1
+SELECT filepath, type, original_filename, size, created_at FROM data_sources WHERE filepath = $1
 `
 
 func (q *Queries) GetDataSourceByFilePath(ctx context.Context, filepath string) (DataSource, error) {
@@ -59,4 +62,159 @@ func (q *Queries) GetDataSourceByFilePath(ctx context.Context, filepath string) 
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getDataSources = `-- name: GetDataSources :many
+with dates as (
+        select
+            ds.filepath,
+            min(p.visited)::timestamp start,
+            max(p.visited)::timestamp end
+from data_sources ds
+    join points p on p.data_source_filepath = ds.filepath
+group by ds.filepath
+)
+select
+    ds.type,
+    ds.filepath,
+    ds.original_filename,
+    ds.size,
+    d.start,
+    d.end
+from data_sources ds
+    join dates d on ds.filepath = d.filepath
+where (
+        $1::text is null
+        or ds.type = $1::text
+    )
+    and (
+        $2::text is null
+        or ds.original_filename = $2::text
+    )
+    and (
+        $3::timestamp is null
+        or d.start < $3::timestamp
+    )
+    and (
+        $4::timestamp is null
+        or d.start > $4::timestamp
+    )
+order by d.start desc
+`
+
+type GetDataSourcesParams struct {
+	Type             pgtype.Text      `json:"type"`
+	OriginalFilename pgtype.Text      `json:"originalFilename"`
+	StartBefore      pgtype.Timestamp `json:"startBefore"`
+	StartAfter       pgtype.Timestamp `json:"startAfter"`
+}
+
+type GetDataSourcesRow struct {
+	Type             string           `json:"type"`
+	Filepath         string           `json:"filepath"`
+	OriginalFilename string           `json:"originalFilename"`
+	Size             int64            `json:"size"`
+	Start            pgtype.Timestamp `json:"start"`
+	End              pgtype.Timestamp `json:"end"`
+}
+
+func (q *Queries) GetDataSources(ctx context.Context, arg *GetDataSourcesParams) ([]GetDataSourcesRow, error) {
+	rows, err := q.db.Query(ctx, getDataSources,
+		arg.Type,
+		arg.OriginalFilename,
+		arg.StartBefore,
+		arg.StartAfter,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDataSourcesRow
+	for rows.Next() {
+		var i GetDataSourcesRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.Filepath,
+			&i.OriginalFilename,
+			&i.Size,
+			&i.Start,
+			&i.End,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDataSourcesFromPolygon = `-- name: GetDataSourcesFromPolygon :many
+with dates as (
+        select
+            ds.filepath,
+            min(p.visited)::timestamp start,
+            max(p.visited)::timestamp end
+from data_sources ds
+    join points p on p.data_source_filepath = ds.filepath
+group by ds.filepath
+)
+select
+    ds.type,
+    ds.filepath,
+    ds.original_filename,
+    ds.size,
+    d.start,
+    d.end
+from data_sources ds
+    join dates d on ds.filepath = d.filepath
+where ds.filepath in (
+    select distinct data_source_filepath
+    from points
+    where st_within(
+            geom::geometry, 
+            st_polygon(
+                    st_linefromtext($1::text), 
+                    4326
+            )
+    )
+)
+order by d.start desc
+`
+
+type GetDataSourcesFromPolygonRow struct {
+	Type             string           `json:"type"`
+	Filepath         string           `json:"filepath"`
+	OriginalFilename string           `json:"originalFilename"`
+	Size             int64            `json:"size"`
+	Start            pgtype.Timestamp `json:"start"`
+	End              pgtype.Timestamp `json:"end"`
+}
+
+func (q *Queries) GetDataSourcesFromPolygon(ctx context.Context, linestring string) ([]GetDataSourcesFromPolygonRow, error) {
+	rows, err := q.db.Query(ctx, getDataSourcesFromPolygon, linestring)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDataSourcesFromPolygonRow
+	for rows.Next() {
+		var i GetDataSourcesFromPolygonRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.Filepath,
+			&i.OriginalFilename,
+			&i.Size,
+			&i.Start,
+			&i.End,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

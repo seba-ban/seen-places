@@ -8,6 +8,11 @@ sql:
         package: "queries"
         out: "queries"
         sql_package: "pgx/v5"
+        emit_params_struct_pointers: true
+        emit_prepared_queries: true
+        emit_pointers_for_null_types: false
+        emit_json_tags: true
+        json_tags_case_style: "camel"
         # overrides:
         # panic: ERROR: COPY from stdin failed: unable to encode geom.Point{geom0:geom.geom0{layout:1, stride:2, flatCoords:[]float64{1, 2}, srid:4326}} into binary format for unknown type (OID 36280): cannot find encode plan (SQLSTATE 57014)
         # - db_type: "geometry"

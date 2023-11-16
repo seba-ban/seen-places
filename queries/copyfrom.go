@@ -11,7 +11,7 @@ import (
 
 // iteratorForCreatePoints implements pgx.CopyFromSource.
 type iteratorForCreatePoints struct {
-	rows                 []CreatePointsParams
+	rows                 []*CreatePointsParams
 	skippedFirstNextCall bool
 }
 
@@ -39,6 +39,6 @@ func (r iteratorForCreatePoints) Err() error {
 	return nil
 }
 
-func (q *Queries) CreatePoints(ctx context.Context, arg []CreatePointsParams) (int64, error) {
+func (q *Queries) CreatePoints(ctx context.Context, arg []*CreatePointsParams) (int64, error) {
 	return q.db.CopyFrom(ctx, []string{"points"}, []string{"geom", "visited", "data_source_filepath"}, &iteratorForCreatePoints{rows: arg})
 }

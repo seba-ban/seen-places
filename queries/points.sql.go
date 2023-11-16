@@ -12,9 +12,9 @@ import (
 )
 
 type CreatePointsParams struct {
-	Geom               interface{}
-	Visited            pgtype.Timestamptz
-	DataSourceFilepath string
+	Geom               interface{}        `json:"geom"`
+	Visited            pgtype.Timestamptz `json:"visited"`
+	DataSourceFilepath string             `json:"dataSourceFilepath"`
 }
 
 const getDataSourcePointsCount = `-- name: GetDataSourcePointsCount :one
@@ -30,27 +30,34 @@ func (q *Queries) GetDataSourcePointsCount(ctx context.Context, dataSourceFilepa
 }
 
 const getGeoJson = `-- name: GetGeoJson :one
-with lines as (
-        select 
-                st_simplify(
-                        st_makeline(geom::geometry order by visited asc),
-                        0.01
-                ) l
-        from points p
-        join data_sources ds on p.data_source_filepath = ds.filepath
-        group by filepath
-) select 
-        st_asgeojson(
-                st_union(l)   
-        )::text geojson
-from lines
+with a as (
+        select st_simplify(st_makeline(geom::geometry order by visited), 0.001) c
+        from points
+        group by data_source_filepath
+) select st_asgeojson(st_linemerge(st_union(c)))::text from a
 `
 
 func (q *Queries) GetGeoJson(ctx context.Context) (string, error) {
 	row := q.db.QueryRow(ctx, getGeoJson)
-	var geojson string
-	err := row.Scan(&geojson)
-	return geojson, err
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getLineByFilepath = `-- name: GetLineByFilepath :one
+select
+    st_asgeojson(
+        st_makeline(geom::geometry order by visited desc)
+    )::text
+from points
+where data_source_filepath = $1
+`
+
+func (q *Queries) GetLineByFilepath(ctx context.Context, dataSourceFilepath string) (string, error) {
+	row := q.db.QueryRow(ctx, getLineByFilepath, dataSourceFilepath)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const getLineStrings = `-- name: GetLineStrings :many
@@ -71,16 +78,16 @@ group by filepath::text
 `
 
 type GetLineStringsParams struct {
-	VisitedBefore      pgtype.Timestamptz
-	VisitedAfter       pgtype.Timestamptz
-	DataSourceFilepath pgtype.Text
-	DataSourceType     pgtype.Text
-	WithinMeters       pgtype.Float8
-	WithinMetersLongX  pgtype.Float8
-	WithinMetersLatY   pgtype.Float8
+	VisitedBefore      pgtype.Timestamptz `json:"visitedBefore"`
+	VisitedAfter       pgtype.Timestamptz `json:"visitedAfter"`
+	DataSourceFilepath pgtype.Text        `json:"dataSourceFilepath"`
+	DataSourceType     pgtype.Text        `json:"dataSourceType"`
+	WithinMeters       pgtype.Float8      `json:"withinMeters"`
+	WithinMetersLongX  pgtype.Float8      `json:"withinMetersLongX"`
+	WithinMetersLatY   pgtype.Float8      `json:"withinMetersLatY"`
 }
 
-func (q *Queries) GetLineStrings(ctx context.Context, arg GetLineStringsParams) ([]string, error) {
+func (q *Queries) GetLineStrings(ctx context.Context, arg *GetLineStringsParams) ([]string, error) {
 	rows, err := q.db.Query(ctx, getLineStrings,
 		arg.VisitedBefore,
 		arg.VisitedAfter,

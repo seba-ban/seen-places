@@ -24,7 +24,6 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: move to flags
 		cfg.TemplatesPath = "templates"
-		cfg.TemplatesExt = ".tmpl"
 		cfg.Run()
 	},
 }

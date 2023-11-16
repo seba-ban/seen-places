@@ -160,7 +160,7 @@ func processObject(sess *session.Session, objKey string) (*FileInfo, error) {
 }
 
 func saveFileInfoToDb(ctx context.Context, info *FileInfo, q *queries.Queries) error {
-	_, err := q.CreateDataSource(ctx, queries.CreateDataSourceParams{
+	_, err := q.CreateDataSource(ctx, &queries.CreateDataSourceParams{
 		Filepath:         info.FilePath,
 		OriginalFilename: info.OriginalName,
 		Size:             info.Size,

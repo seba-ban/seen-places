@@ -1,0 +1,5 @@
+<div>
+{{ range .DataSources }}
+    <div class="dataSource" hx-on:click="onDataSourceClick(event)" id="{{ .Filepath }}">{{ .OriginalFilename }} | {{ .Start | formatTime }} ({{ formatTimeDuration .Start .End }})</div>
+{{ end }}
+</div>

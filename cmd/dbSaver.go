@@ -89,7 +89,7 @@ func processDelivery(d *amqp.Delivery, q *queries.Queries) {
 	}
 
 	// TODO: would be easier and more efficient to use pgx copy from directly...
-	params := make([]queries.CreatePointsParams, len(points.GetPoints()))
+	params := make([]*queries.CreatePointsParams, len(points.GetPoints()))
 
 	for i, p := range points.GetPoints() {
 		point := geom.NewPoint(geom.XY)
@@ -110,7 +110,7 @@ func processDelivery(d *amqp.Delivery, q *queries.Queries) {
 			return
 		}
 
-		params[i] = queries.CreatePointsParams{
+		params[i] = &queries.CreatePointsParams{
 			Geom:               raw,
 			Visited:            pgtype.Timestamptz{Time: t, Valid: true},
 			DataSourceFilepath: p.GetFilepath(),

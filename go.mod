@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/aws/aws-sdk-go v1.47.9
 	github.com/gin-gonic/gin v1.9.1
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/spf13/cobra v1.8.0

@@ -25,10 +25,12 @@ def get_activity_time(messages: dict) -> datetime | None:
     except:
         return None
 
+
 def process_datetime(dt: datetime) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.isoformat()
+
 
 class Point(BaseModel):
     latitude: float

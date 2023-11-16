@@ -9,15 +9,15 @@ import (
 )
 
 type DataSource struct {
-	Filepath         string
-	Type             string
-	OriginalFilename string
-	Size             int64
-	CreatedAt        pgtype.Timestamptz
+	Filepath         string             `json:"filepath"`
+	Type             string             `json:"type"`
+	OriginalFilename string             `json:"originalFilename"`
+	Size             int64              `json:"size"`
+	CreatedAt        pgtype.Timestamptz `json:"createdAt"`
 }
 
 type Point struct {
-	Geom               interface{}
-	Visited            pgtype.Timestamptz
-	DataSourceFilepath string
+	Geom               interface{}        `json:"geom"`
+	Visited            pgtype.Timestamptz `json:"visited"`
+	DataSourceFilepath string             `json:"dataSourceFilepath"`
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"html/template"
 	"path"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,6 @@ var q *queries.Queries
 
 type ServerConfig struct {
 	TemplatesPath string
-	TemplatesExt  string
 }
 
 func (c *ServerConfig) Run() {
@@ -24,8 +24,11 @@ func (c *ServerConfig) Run() {
 
 	q = queries.New(dbConn)
 
-	engine.LoadHTMLGlob(path.Join(c.TemplatesPath, "*"+c.TemplatesExt))
-
+	engine.SetFuncMap(template.FuncMap{
+		"formatTime":         utils.FormatTime,
+		"formatTimeDuration": utils.FormatTimeDuration,
+	})
+	engine.LoadHTMLGlob(path.Join(c.TemplatesPath, "*"))
 	// TODO: move to config
 	engine.Run() // listen and serve on 0.0.0.0:8080
 }
