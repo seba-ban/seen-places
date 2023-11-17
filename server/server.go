@@ -18,9 +18,9 @@ type ServerConfig struct {
 }
 
 func (c *ServerConfig) Run() {
-	ctx, dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
+	dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
 	utils.PanicOnError(err)
-	defer dbConn.Close(*ctx)
+	defer dbConn.Close()
 
 	q = queries.New(dbConn)
 

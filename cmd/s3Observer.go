@@ -218,12 +218,14 @@ func processFiles() error {
 	}
 
 	// Connect to the db
-	ctx, dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
+	// TODO: use connection here, not pool
+	dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
 	if err != nil {
 		return err
 	}
-	defer dbConn.Close(*ctx)
+	defer dbConn.Close()
 
+	ctx := context.Background()
 	// Prepare queries
 	q := queries.New(dbConn)
 
@@ -251,11 +253,11 @@ func processFiles() error {
 			continue
 		}
 
-		_, err = q.GetDataSourceByFilePath(*ctx, info.FilePath)
+		_, err = q.GetDataSourceByFilePath(ctx, info.FilePath)
 
 		if err == pgx.ErrNoRows {
 			log.Printf("Saving file info to db: %s", info.FilePath)
-			err = saveFileInfoToDb(*ctx, info, q)
+			err = saveFileInfoToDb(ctx, info, q)
 			if err != nil {
 				log.Printf("Error saving file info to db: %s", err)
 				continue
@@ -265,7 +267,7 @@ func processFiles() error {
 			continue
 		}
 
-		count, err := q.GetDataSourcePointsCount(*ctx, info.FilePath)
+		count, err := q.GetDataSourcePointsCount(ctx, info.FilePath)
 		if err != nil {
 			log.Printf("Error getting data source points count: %s", err)
 			continue

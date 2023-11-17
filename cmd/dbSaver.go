@@ -46,9 +46,9 @@ to quickly create a Cobra application.`,
 		err = broker.DeclareQueue(commonflags.ChannelNames.PointsSave, channel)
 		utils.PanicOnError(err)
 
-		ctx, dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
+		dbConn, err := commonflags.DbConnConfig.OpenDbConnection()
 		utils.PanicOnError(err)
-		defer dbConn.Close(*ctx)
+		defer dbConn.Close()
 
 		q := queries.New(dbConn)
 

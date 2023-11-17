@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
-
 create table data_sources(
   filepath text unique primary key,
   type text not null,

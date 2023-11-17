@@ -1,0 +1,154 @@
+volumes:
+  db-data:
+  s3-data:
+  storage-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./.tmp/storage
+
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_USER: &db-user seenplaces
+      POSTGRES_PASSWORD: &db-pass seenplaces
+      POSTGRES_DB: &db-db seenplaces
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+
+  broker:
+    image: rabbitmq:3.12.8-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: &broker-user example
+      RABBITMQ_DEFAULT_PASS: &broker-pass example
+    ports:
+      - "25672:5672"
+      - "26672:15672"
+
+  s3:
+    image: minio/minio
+    command: server /data --console-address=:9001
+    ports:
+      - "29000:9000"
+      - "29001:9001"
+    volumes:
+      - s3-data:/data
+    environment:
+      MINIO_ACCESS_KEY: &s3-user minioadmin
+      MINIO_SECRET_KEY: &s3-pass minioadmin
+
+  server:
+    image: seenplaces
+    command: server    
+    volumes: &vols
+      - "./:/app"
+      - "storage-data:/storage"
+    build:
+      context: "."
+      target: dev
+    ports:
+      - "18080:8080"
+    depends_on: &deps
+      - db
+      - broker
+      - s3
+    environment: &env
+      DB_USER: *db-user
+      DB_PASSWORD: *db-pass
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: *db-db
+      DB_SSLMODE: disable
+
+      BROKER_HOST: broker
+      BROKER_PORT: "5672"
+      BROKER_USER: *broker-user
+      BROKER_PASSWORD: *broker-pass
+
+      S3_RAW_FILES_BUCKET: rawfiles
+      S3_ACCESS_KEY: *s3-user
+      S3_SECRET_KEY: *s3-pass
+      S3_ENDPOINT_URL: http://s3:9000
+
+      LOCAL_STORAGE_DIR: /storage
+      TMP_DIR: /tmp
+
+  dbsaver:
+    image: seenplaces
+    command: dbSaver
+    environment:
+      <<: [*env]
+    volumes: *vols
+    depends_on: *deps
+
+  s3observer:
+    image: seenplaces
+    command: s3Observer
+    environment:
+      <<: [*env]
+    volumes: *vols
+    depends_on: *deps
+
+  garmin-handler:
+    image: seenplaces/garmin
+    build:
+      context: "formatHandlers/garmin"
+      target: dev
+    volumes:
+      - "storage-data:/data/storage"
+      - "./formatHandlers/garmin:/app"
+    depends_on:
+      - broker
+    environment:
+      BROKER_HOST: broker
+      BROKER_PORT: "5672"
+      BROKER_USERNAME: *broker-user
+      BROKER_PASSWORD: *broker-pass
+      LOCAL_STORAGE_FILES_DIR: /data/storage
+
+  gopro-handler:
+    image: seenplaces/gopro
+    build:
+      context: "formatHandlers/gopro"
+      target: dev
+    volumes:
+      - "storage-data:/data/storage"
+      - "./formatHandlers/gopro:/app"
+    depends_on:
+      - broker
+    environment:
+      RABBITMQ_HOST: broker
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: *broker-user
+      RABBITMQ_PASSWORD: *broker-pass
+      RABBITMQ_WORK_QUEUE: gopro
+      RABBITMQ_TARGET_QUEUE: points
+      LOCAL_STORAGE_FILES_DIR: /data/storage
+
+  init-setup:
+    image: seenplaces/init
+    build:
+      context: "."
+      target: init
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        bash /scripts/create_bucket.sh
+        bash /scripts/make_migrations.sh
+    environment:
+      <<: [*env]
+    volumes:
+      - "./db/migrations:/migrations"
+      - "./hack:/scripts"
+    depends_on:
+      - db
+      - s3
+    deploy:
+      restart_policy:
+          condition: on-failure

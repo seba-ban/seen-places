@@ -1,9 +1,22 @@
-FROM golang:1.21 AS build
+FROM golang:1.21 AS init
+
+RUN go install github.com/minio/mc@latest
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+FROM golang:1.21 AS base
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
+
+FROM base AS dev
+
+ENV LOCAL_STORAGE_FILES_DIR /data/storage
+RUN go install github.com/cosmtrek/air@latest
+ENTRYPOINT [ "air", "-c", ".air.toml" ]
+
+FROM base AS build
 
 COPY ./ ./
 

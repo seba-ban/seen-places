@@ -25,3 +25,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 run_handler = 'garmin_format_handler.main:run'
+
+[tool.isort]
+profile = "black"
+
+[tool.poe.tasks]
+format = [
+    { cmd = "isort garmin_format_handler" },
+    { cmd = "black garmin_format_handler" },
+]

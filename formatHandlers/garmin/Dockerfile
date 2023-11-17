@@ -1,3 +1,14 @@
+FROM python:3.11 AS dev
+
+WORKDIR /app
+COPY README.md pyproject.toml poetry.lock ./
+RUN pip install poetry \
+    && poetry config virtualenvs.in-project false \
+    && poetry install
+COPY --from=cosmtrek/air /go/bin/air /usr/local/bin/air
+
+CMD [ "air", "-c", ".air.toml" ]
+
 FROM python:3.11 AS builder
 
 WORKDIR /build

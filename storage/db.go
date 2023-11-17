@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DbConnectionConfig struct {
@@ -23,14 +23,13 @@ func (c *DbConnectionConfig) Dsn() string {
 	)
 }
 
-func (c *DbConnectionConfig) OpenDbConnection() (*context.Context, *pgx.Conn, error) {
+func (c *DbConnectionConfig) OpenDbConnection() (*pgxpool.Pool, error) {
 	ctx := context.Background()
-	dbConn, err := pgx.Connect(
+	dbConn, err := pgxpool.New(
 		ctx, c.Dsn(),
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	return &ctx, dbConn, nil
+	return dbConn, nil
 }
